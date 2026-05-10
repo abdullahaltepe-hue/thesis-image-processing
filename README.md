@@ -1,24 +1,55 @@
-# 🧠 Graduation Thesis — Image Processing & Computer Vision
+# 🧠 Reproduction and Analysis of Self-Supervised Poisson Denoising: The Poisson2Sparse Framework
 
-> **Bachelor's Degree Final Project**  
-> A comprehensive study and implementation of image processing techniques using Python and OpenCV.
+> **Bachelor's Thesis — Marmara University, Electrical & Electronics Engineering**  
+> Supervisor: Asst. Prof. Dr. Rıfat Volkan Şenyuva | January 2026
 
----
-
-## 📌 Project Overview
-
-This repository contains the full source code, documentation, and findings from my graduation thesis. The project explores core **computer vision** and **image processing** algorithms, demonstrating how machines can interpret and analyze visual data.
-
-The thesis investigates [briefly describe your specific topic — e.g., *object detection*, *image segmentation*, *feature extraction*, etc.] and presents a working implementation with real test results.
+[![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-MPS%20%7C%20CUDA-orange?logo=pytorch)](https://pytorch.org)
+[![Apple Silicon](https://img.shields.io/badge/Hardware-Apple%20M4-black?logo=apple)](https://apple.com)
+[![PSNR](https://img.shields.io/badge/PSNR-31.88%20dB-brightgreen)]()
 
 ---
 
-## 🎯 Objectives
+## 📌 Overview
 
-- Understand and implement fundamental image processing pipelines
-- Apply [your specific method, e.g., edge detection / segmentation / classification] to real-world image datasets
-- Evaluate algorithm performance using quantitative metrics (accuracy, precision, F1-score)
-- Present findings in a reproducible, well-documented codebase
+Biomedical imaging techniques such as **fluorescence microscopy** and **MRI** are heavily affected by Poisson noise — especially in low-signal conditions. Unlike Gaussian noise, Poisson noise is signal-dependent and cannot be removed with standard supervised denoising methods, since clean reference images are rarely available in clinical settings.
+
+This thesis provides a **detailed analysis and independent reproduction** of the **Poisson2Sparse** framework — a self-supervised denoising method that learns entirely from noisy data, with no clean ground-truth required.
+
+---
+
+## 🔬 What is Poisson2Sparse?
+
+Poisson2Sparse combines two powerful ideas:
+
+1. **Convolutional Sparse Coding (CSC)** — represents an image as a sparse linear combination of learned filters, capturing the underlying anatomical structure while separating out noise.
+2. **Deep Algorithm Unrolling (LISTA)** — converts the iterative ISTA optimization algorithm into a trainable neural network, so the model learns optimal parameters directly from data.
+
+Together, they form a compact neural network that is both mathematically principled and practical to train — even without a GPU.
+
+---
+
+## 🎯 Core Contributions
+
+- **Independent full reimplementation** of the Poisson2Sparse framework from scratch
+- **Cross-platform hardware adaptation**: ported CUDA-based training to Apple Silicon MPS (Metal Performance Shaders)
+- **Reproducibility study**: verified that self-supervised deep denoising works on consumer-grade hardware — no research lab required
+- **Robustness analysis**: evaluated model behavior under varying noise levels and architectures
+
+---
+
+## 📊 Results
+
+| Metric | This Work | Original Paper |
+|--------|-----------|----------------|
+| PSNR (dB) | **31.88** | 32.20 |
+| Dataset | PINCAT | PINCAT |
+| Hardware | Apple M4 (MPS) | CUDA GPU |
+| Training | Self-supervised | Self-supervised |
+
+> The model trained on Apple M4 reached **31.88 dB PSNR**, closely approaching the original paper's 32.20 dB benchmark — demonstrating that high-performance denoising is achievable on consumer hardware.
+
+Method noise maps confirmed that the network removes random Poisson noise while preserving underlying anatomical structures intact.
 
 ---
 
@@ -26,56 +57,59 @@ The thesis investigates [briefly describe your specific topic — e.g., *object 
 
 | Tool | Purpose |
 |------|---------|
-| Python 3.x | Core programming language |
-| OpenCV | Image processing & computer vision |
-| NumPy | Matrix and array operations |
-| Matplotlib | Visualization of results |
-| Scikit-learn | Model evaluation metrics |
-| Jupyter Notebook | Analysis & presentation |
+| Python 3.x | Core language |
+| PyTorch (MPS backend) | Model training on Apple Silicon |
+| NumPy | Numerical operations |
+| Matplotlib | Visualization of denoising results |
+| PINCAT Dataset | Cardiac imaging benchmark dataset |
 
 ---
 
-## 📁 Project Structure
+## 📁 Repository Structure
 
 ```
 thesis-image-processing/
 │
-├── data/                  # Sample images and datasets
-├── notebooks/
-│   ├── 01_EDA.ipynb       # Exploratory analysis of image data
-│   ├── 02_Preprocessing.ipynb  # Noise removal, resizing, normalization
-│   └── 03_Results.ipynb   # Final model outputs and evaluation
-├── src/
-│   ├── preprocessing.py   # Image preprocessing functions
-│   ├── pipeline.py        # Main processing pipeline
-│   └── evaluate.py        # Metric calculation
-├── outputs/               # Processed images and result figures
-├── thesis_report.pdf      # Full academic report (Turkish)
+├── model/
+│   ├── poisson2sparse.py      # Core network (CSC + LISTA unrolling)
+│   ├── lista_layers.py        # Deep unrolling layers
+│   └── loss.py                # Poisson log-likelihood loss
+│
+├── data/
+│   └── pincat/                # PINCAT dataset loader
+│
+├── train.py                   # Training script (MPS/CUDA compatible)
+├── evaluate.py                # PSNR & SSIM evaluation
+├── visualize.py               # Denoising output visualization
+│
+├── EE4297_Report.pdf          # Full thesis report
 └── README.md
 ```
 
 ---
 
-## 🔬 Methodology
+## 🧮 Key Concepts
 
-1. **Data Collection** — [Dataset source / synthetic images / custom dataset]
-2. **Preprocessing** — Grayscale conversion, noise filtering, normalization, resizing
-3. **Processing / Analysis** — [Core algorithm: e.g., Canny edge detection, Gaussian blur, contour detection, CNN classification]
-4. **Evaluation** — Quantitative metrics + visual comparison of input vs output
-5. **Conclusion** — Key findings and limitations
+**Poisson Noise Model**
 
----
+Unlike additive Gaussian noise, Poisson noise scales with signal intensity. The log-likelihood loss used for training is:
 
-## 📊 Sample Results
+```
+L(θ) = Σ [ f_θ(y) - y · log(f_θ(y)) ]
+```
 
-| Metric | Value |
-|--------|-------|
-| Accuracy | XX% |
-| Precision | XX% |
-| Recall | XX% |
-| Processing Speed | XX ms/image |
+where `y` is the noisy observation and `f_θ` is the network output.
 
-> *(Update these values with your actual thesis results)*
+**Deep Unrolling (LISTA)**
+
+Each layer of the network corresponds to one iteration of the ISTA algorithm:
+
+```
+z^(k+1) = Soft_τ( W_e · x + S · z^(k) )
+x_hat   = W_d · z^(K)
+```
+
+Parameters `W_e`, `S`, `W_d`, and `τ` are all learned end-to-end.
 
 ---
 
@@ -87,28 +121,28 @@ git clone https://github.com/abdullahaltepe-hue/thesis-image-processing.git
 cd thesis-image-processing
 
 # Install dependencies
-pip install -r requirements.txt
+pip install torch numpy matplotlib
 
-# Run the main pipeline
-python src/pipeline.py
+# Train the model (Apple Silicon)
+python train.py --device mps --epochs 100
 
-# Or open Jupyter notebooks
-jupyter notebook notebooks/
+# Evaluate on PINCAT
+python evaluate.py --checkpoint checkpoints/best_model.pth
 ```
 
 ---
 
-## 📄 Academic Report
+## 📄 Full Report
 
-The full thesis report (in Turkish) is available as a PDF: [`thesis_report.pdf`](./thesis_report.pdf)
+The complete academic report is available: [`EE4297_Report.pdf`](./EE4297_Report.pdf)
+
+**Keywords:** Self-Supervised Learning · Image Denoising · Poisson Noise · Sparse Coding · Deep Unrolling · Biomedical Imaging · Reproducibility
 
 ---
 
 ## 👤 Author
 
-**Mehmet Bahçeci**  
-[LinkedIn](https://www.linkedin.com/in/bahceci-mehmet) · [GitHub](https://github.com/abdullahaltepe-hue)
+**Abdullah Altepe** — Marmara University, EEE (Student ID: 150721034)  
+[GitHub](https://github.com/abdullahaltepe-hue)
 
----
-
-*This project was submitted as a graduation requirement. All work is original unless otherwise cited.*
+*Submitted in partial fulfillment of the requirements for BSc in Electrical and Electronics Engineering, Marmara University, January 2026.*
